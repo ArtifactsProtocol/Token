@@ -2,9 +2,11 @@ const hre = require('hardhat')
 const { expect, assert } = require('chai')
 const { ethers } = require('hardhat')
 
-describe('Token contract', function () {
+describe('Airdrop contract', function () {
   let Token
   let token
+  let Airdrop
+  let airdrop
   let owner
   let addrs
   let proof
@@ -14,6 +16,11 @@ describe('Token contract', function () {
     ;[owner, ...addrs] = await ethers.getSigners()
     Token = await hre.ethers.getContractFactory('Token')
     token = await Token.deploy()
+
+    Airdrop = await hre.ethers.getContractFactory('Airdrop')
+    airdrop = await Airdrop.deploy(token.address)
+
+    await token.approve(airdrop.address, ethers.constants.MaxUint256)
   })
 
   describe('Check token info', function () {
@@ -38,15 +45,15 @@ describe('Token contract', function () {
       proof = tree.proof
       root = tree.root
 
-      await token.setRoot(root, ethers.constants.MaxUint256)
-      expect(await token.checkProof(proof, addrs[0].address, 1)).to.be.true
+      await airdrop.setRoot(root, ethers.constants.MaxUint256)
+      expect(await airdrop.checkProof(proof, addrs[0].address, 1)).to.be.true
     })
 
     it('withdraw more than your quota', async function () {
-      expect(await token.checkProof(proof, addrs[0].address, 2)).to.be.false
+      expect(await airdrop.checkProof(proof, addrs[0].address, 2)).to.be.false
       let _err
       try {
-        await token.getTokensByMerkleProof(proof, addrs[0].address, 2)
+        await airdrop.getTokensByMerkleProof(proof, addrs[0].address, 2)
       } catch (err) {
         _err = err
       }
@@ -57,18 +64,18 @@ describe('Token contract', function () {
       expect((await token.balanceOf(addrs[0].address)).toNumber()).to.be.equal(
         0,
       )
-      expect(await token.checkProof(proof, addrs[0].address, 1)).to.be.true
-      await token.getTokensByMerkleProof(proof, addrs[0].address, 1)
+      expect(await airdrop.checkProof(proof, addrs[0].address, 1)).to.be.true
+      await airdrop.getTokensByMerkleProof(proof, addrs[0].address, 1)
       expect((await token.balanceOf(addrs[0].address)).toNumber()).to.be.equal(
         1,
       )
     })
 
     it('dup withdraw', async function () {
-      expect(await token.checkProof(proof, addrs[0].address, 1)).to.be.false
+      expect(await airdrop.checkProof(proof, addrs[0].address, 1)).to.be.false
       let _err
       try {
-        await token.getTokensByMerkleProof(proof, addrs[0].address, 1)
+        await airdrop.getTokensByMerkleProof(proof, addrs[0].address, 1)
       } catch (err) {
         _err = err
       }
